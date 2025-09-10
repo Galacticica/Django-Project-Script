@@ -137,7 +137,7 @@ EOF
 cat > .env << 'EOF'
 # Django environment variables
 
-# Use a fixed key in dev so sessions don’t reset on every restart
+# Use a fixed key in dev so sessions don't reset on every restart
 SECRET_KEY=dev-secret-key-change-me
 
 # Set to 1 for development, 0 for production
