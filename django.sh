@@ -30,6 +30,17 @@ rmdir conf/conf
 
 mkdir templates static media
 
+uv run manage.py startapp accounts
+cd accounts
+mkdir templates
+cd templates
+mkdir accounts
+cd ..
+touch urls.py
+touch forms.py
+cd ..
+
+
 cat > conf/settings.py << 'EOF'
 from pathlib import Path
 import os
@@ -62,6 +73,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "django_browser_reload",
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -131,6 +143,12 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "/login/"
+
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
 EOF
 
 
@@ -150,12 +168,10 @@ URLS_FILE="conf/urls.py"
 sed -i "s/from django.urls import path/from django.urls import path, include/" $URLS_FILE
 
 sed -i "/urlpatterns = \[/ a\ \ \ \ path('__reload__/', include('django_browser_reload.urls'))," $URLS_FILE
-
-uv run python manage.py migrate
+sed -i "/urlpatterns = \[/ a\ \ \ \ path('account/', include('accounts.urls'))," $URLS_FILE
 
 cat > templates/base.html << 'EOF'
 {% load static %}
-{% load form_extras %}
 
 <!DOCTYPE html>
 <html lang="en" class="h-full">
@@ -181,7 +197,7 @@ cat > templates/base.html << 'EOF'
 <body class="min-h-screen flex flex-col bg-white">
     <header class="p-6" style="background-color: var(--concordia-blue); color: var(--concordia-white);">
         <div class="flex flex-col items-center font-sans">
-            <p>This is a header</p>
+            <h1>This is a header</h1>
         </div>
     </header>
     <main class="flex-grow">
@@ -195,5 +211,255 @@ cat > templates/base.html << 'EOF'
 </body>
 </html>
 EOF
+
+# Accounts creation
+cat > accounts/models.py << 'EOF'
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+class User(AbstractUser):
+
+    email = models.EmailField(unique=True)
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["first_name", "last_name"]
+
+    def __str__(self):
+        return (self.first_name + " " + self.last_name).strip()
+EOF
+
+cat > accounts/admin.py << 'EOF'
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import User
+
+admin.site.register(User)
+EOF
+
+cat > accounts/forms.py << 'EOF'
+from django import forms
+from django.contrib.auth import authenticate as auth_authenticate
+
+
+class LoginForm(forms.Form):
+    email = forms.EmailField(
+        max_length=254,
+        required=True, 
+        widget=forms.TextInput(attrs={"placeholder": "Email Address", "class": "form-control"}),
+        label="Email"
+    )
+    password = forms.CharField(
+        max_length=128,
+        required=True,
+        widget=forms.PasswordInput(attrs={"placeholder": "Password", "class": "form-control"}),
+        label="Password"
+    )
+
+    def __init__(self, request, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.request = request
+    
+    def clean(self):
+        self.user_cache = auth_authenticate(
+           self.request,
+           username=self.cleaned_data.get("email"),
+              password=self.cleaned_data.get("password")
+        )
+        if self.user_cache is None:
+           raise forms.ValidationError("Invalid email or password.")
+        return super().clean()
+    def get_user(self):
+        return self.user_cache
+    
+
+class SignupForm(forms.Form):
+
+    email = forms.EmailField(
+        max_length=254,
+        required=True,
+        widget=forms.TextInput(attrs={"placeholder": "Email Address", "class": "form-control"}),
+        label="Email"
+    )
+    password = forms.CharField(
+        max_length=128,
+        required=True,
+        widget=forms.PasswordInput(attrs={"placeholder": "Password", "class": "form-control"}),
+        label="Password"
+    )
+    confirm_password = forms.CharField(
+        max_length=128,
+        required=True,
+        widget=forms.PasswordInput(attrs={"placeholder": "Confirm Password", "class": "form-control"}),
+        label="Confirm Password"
+    )
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={"placeholder": "First Name", "class": "form-control"}),
+        label="First Name"
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={"placeholder": "Last Name", "class": "form-control"}),
+        label="Last Name"
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            raise forms.ValidationError("Passwords do not match.")
+
+        return cleaned_data
+
+EOF
+
+cat > accounts/views.py << 'EOF'
+from django.shortcuts import redirect
+from django.contrib.auth.views import LoginView
+from django.views.generic.edit import FormView
+from django.contrib.auth import login, logout
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.views import View
+from .forms import LoginForm, SignupForm
+
+
+User = get_user_model()
+
+class MyLoginView(LoginView):
+    form_class = LoginForm
+    template_name = "accounts/login.html"
+    redirect_authenticated_user = True
+
+class MySignupView(FormView):
+    form_class = SignupForm
+    template_name = "accounts/signup.html"
+    success_url = "/" 
+
+    def form_valid(self, form):
+        user = User.objects.create(
+            email=form.cleaned_data["email"],
+            username=form.cleaned_data["email"],
+            first_name=form.cleaned_data["first_name"],
+            last_name=form.cleaned_data["last_name"],
+            password=make_password(form.cleaned_data["password"]), 
+        )
+        login(self.request, user)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        return super().form_invalid(form)
+
+class MyLogoutView(View):
+    def get(self, request, *args, **kwargs):
+        logout(request)  
+        return redirect("/")  
+
+EOF
+
+cat > accounts/urls.py << 'EOF'
+from django.urls import path
+from .views import MyLoginView, MySignupView, MyLogoutView
+
+
+urlpatterns = [
+    path("login/", MyLoginView.as_view(), name="login_page"),
+    path("signup/", MySignupView.as_view(), name="signup_page"),
+    path("logout/", MyLogoutView.as_view(), name="logout_page"),
+]
+EOF
+
+cat > accounts/templates/accounts/login.html << 'EOF'
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div>
+    <div>
+        <h2>Log In</h2>
+        <form method="post" action="{% url 'login_page' %}">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div>
+                <label for="id_email">Email</label>
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+            <div>
+                <label for="id_password">Password</label>
+                {{ form.password }}
+                {{ form.password.errors }}
+            </div>
+            <button type="submit">Log In</button>
+        </form>
+        <div>
+            <p>No Account Yet? <a href="{% url 'signup_page' %}">Sign Up</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF
+
+cat > accounts/templates/accounts/signup.html << 'EOF'
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div>
+    <div>
+        <h2>Sign Up</h2>
+        <form method="post" action="{% url 'signup_page' %}">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div>
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+                {{ form.first_name.errors }}
+            </div>
+            <div>
+                {{ form.last_name.label_tag }}
+                {{ form.last_name }}
+                {{ form.last_name.errors }}
+            </div>
+            <div>
+                {{ form.email.label_tag }}
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+            <div>
+                {{ form.password.label_tag }}
+                {{ form.password }}
+                {{ form.password.errors }}
+            </div>
+            <div>
+                {{ form.confirm_password.label_tag }}
+                {{ form.confirm_password }}
+                {{ form.confirm_password.errors }}
+            </div>
+            <div>
+                {{ form.role.label_tag }}
+                {{ form.role }}
+                {{ form.role.errors }}
+            </div>
+            <button type="submit">Sign Up</button>
+        </form>
+        <div>
+            <p>Already have an account? 
+                <a href="{% url 'login_page' %}">Log In</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF
+
+source .venv/bin/activate
+
+uv run python manage.py makemigrations accounts
+uv run python manage.py migrate
+
 uv run python manage.py runserver
 
