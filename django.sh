@@ -40,7 +40,7 @@ touch urls.py
 touch forms.py
 cd ..
 
-
+# Configure settings.py
 cat > conf/settings.py << 'EOF'
 from pathlib import Path
 import os
@@ -151,7 +151,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 EOF
 
-
+# Create environment variables
 cat > .env << 'EOF'
 # Django environment variables
 
@@ -170,6 +170,8 @@ sed -i "s/from django.urls import path/from django.urls import path, include/" $
 sed -i "/urlpatterns = \[/ a\ \ \ \ path('__reload__/', include('django_browser_reload.urls'))," $URLS_FILE
 sed -i "/urlpatterns = \[/ a\ \ \ \ path('account/', include('accounts.urls'))," $URLS_FILE
 
+
+# Creates a base.html template for Concordia colors
 cat > templates/base.html << 'EOF'
 {% load static %}
 
@@ -213,6 +215,8 @@ cat > templates/base.html << 'EOF'
 EOF
 
 # Accounts creation
+
+# Model
 cat > accounts/models.py << 'EOF'
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -235,6 +239,8 @@ from .models import User
 admin.site.register(User)
 EOF
 
+
+# Forms
 cat > accounts/forms.py << 'EOF'
 from django import forms
 from django.contrib.auth import authenticate as auth_authenticate
@@ -316,6 +322,8 @@ class SignupForm(forms.Form):
 
 EOF
 
+
+# Views
 cat > accounts/views.py << 'EOF'
 from django.shortcuts import redirect
 from django.contrib.auth.views import LoginView
@@ -360,6 +368,8 @@ class MyLogoutView(View):
 
 EOF
 
+
+# URLS
 cat > accounts/urls.py << 'EOF'
 from django.urls import path
 from .views import MyLoginView, MySignupView, MyLogoutView
@@ -372,6 +382,8 @@ urlpatterns = [
 ]
 EOF
 
+
+# Templates
 cat > accounts/templates/accounts/login.html << 'EOF'
 {% extends "base.html" %}
 {% load static %}
@@ -456,6 +468,8 @@ cat > accounts/templates/accounts/signup.html << 'EOF'
 {% endblock %}
 EOF
 
+
+# Finalize by activating venv and running migrations
 source .venv/bin/activate
 
 uv run python manage.py makemigrations accounts
