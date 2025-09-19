@@ -194,6 +194,15 @@ cat > templates/base.html << 'EOF'
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        trix-toolbar [data-trix-button-group="block-tools"] { 
+            display: none;
+        }
+        
+        trix-toolbar [data-trix-button-group="file-tools"] { 
+            display: none;
+        }
+      </style>
     <title>Site Title</title>
 </head>
 <body class="min-h-screen flex flex-col bg-white">
