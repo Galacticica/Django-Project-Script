@@ -160,6 +160,13 @@ SECRET_KEY=dev-secret-key-change-me
 
 # Set to 1 for development, 0 for production
 DEBUG=1
+
+# Postgres Template
+DB_HOST='pg-whatever.com'
+DB_PORT='a number'
+DB_USER='a user'
+DB_NAME='a db name'
+DB_PWD='a password'
 EOF
 
 # --- Patch urls.py ---
