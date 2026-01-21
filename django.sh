@@ -6,8 +6,18 @@
 #!/bin/bash
 # setup_django_uv.sh
 set -e
+# Optional first argument = target directory
+TARGET_DIR="${1:-.}"
 
-PROJECT_NAME=${1:-conf}
+# Resolve and switch to target directory
+if [ ! -d "$TARGET_DIR" ]; then
+  echo "Error: directory '$TARGET_DIR' does not exist."
+  exit 1
+fi
+
+cd "$TARGET_DIR"
+
+PROJECT_NAME=${2:-conf}
 
 # Start uv
 uv init
@@ -17,7 +27,7 @@ uv venv
 uv add django 
 uv add django-browser-reload
 uv add python-dotenv
-uv run django-admin startproject conf
+uv run django-admin startproject "$PROJECT_NAME"
 
 # Move manage.py to root
 mv conf/manage.py ./
