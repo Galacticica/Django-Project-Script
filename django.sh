@@ -1,6 +1,6 @@
 # Name:         django.sh
 # Author:       Reagan Zierke <reagan.zierke@example.com>
-# Created:      2025-09-04
+# Created:      2026-01-21
 # Description:  Setup a Django project using uv
 
 #!/bin/bash

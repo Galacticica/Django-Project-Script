@@ -1,7 +1,7 @@
-# Name:         django.sh
+# Name:         tailwind.sh
 # Author:       Reagan Zierke <reagan.zierke@example.com>
-# Created:      2025-09-04
-# Description:  Setup a Django project using uv
+# Created:      2026-01-21
+# Description:  Setup a Django project using uv, with Tailwind CSS and DaisyUI via Vite.
 
 #!/bin/bash
 # setup_django_uv.sh
