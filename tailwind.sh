@@ -17,7 +17,7 @@ fi
 
 cd "$TARGET_DIR"
 
-PROJECT_NAME=${2:-conf}
+PROJECT_NAME=conf
 
 # Start uv
 uv init
@@ -28,6 +28,7 @@ uv add django
 uv add django-browser-reload
 uv add python-dotenv
 uv add psycopg2-binary
+uv add django-vite
 uv run django-admin startproject "$PROJECT_NAME"
 
 # Move manage.py to root
@@ -58,6 +59,8 @@ import os
 from dotenv import load_dotenv
 from django.core.management.utils import get_random_secret_key
 
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -83,6 +86,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "django_browser_reload",
+    "django_vite",
     'accounts',
 ]
 
@@ -170,6 +174,12 @@ LOGIN_URL = "/login/"
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG,
+    }
+}
 EOF
 
 # Create environment variables
@@ -201,27 +211,16 @@ sed -i "/urlpatterns = \[/ a\ \ \ \ path('account/', include('accounts.urls')),"
 
 # Creates a base.html template for Concordia colors
 cat > templates/base.html << 'EOF'
-{% load static %}
+{% load static django_vite %}
 
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full" data-theme="luxury">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-      :root {
-        --concordia-blue: #192C53;
-        --concordia-sky: #5A9DBF;
-        --concordia-slate: #646464;
-        --concordia-nimbus: #C8C8C8;
-        --concordia-wheat: #E2C172;
-        --concordia-white: #F8F4ED;
-        --concordia-clay: #B2402A;
-      }
-    </style>
+    
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/trix/1.3.1/trix.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         trix-toolbar [data-trix-button-group="block-tools"] { 
             display: none;
@@ -231,20 +230,31 @@ cat > templates/base.html << 'EOF'
             display: none;
         }
       </style>
+    {% vite_hmr_client %}
+    {% vite_asset 'static/src/app.js' %}
+
     <title>Site Title</title>
 </head>
-<body class="min-h-screen flex flex-col bg-white">
-    <header class="p-6" style="background-color: var(--concordia-blue); color: var(--concordia-white);">
+<body class="min-h-screen flex flex-col">
+    <header class="p-6">
         <div class="flex flex-col items-center font-sans">
             <h1>This is a header</h1>
         </div>
     </header>
+
+    <div class="bg-red-500 text-white p-6 rounded-xl">
+        Tailwind works
+    </div>
+    <button class="btn btn-primary">
+        DaisyUI works
+    </button>
+
     <main class="flex-grow">
         {% block content %}{% endblock %}
     </main>
-    <footer class="text-white p-6 mt-4" style="background-color: var(--concordia-blue);">
+    <footer class="p-6 mt-4">
         <div class="flex flex-col items-center font-sans">
-            <p class="text-lg" style="color: var(--concordia-white);">© 2025</p>
+            <p class="text-lg">© 2026</p>
         </div>
     </footer>
 </body>
@@ -537,7 +547,82 @@ EOF
 
 cd static
 mkdir dist public src
+cd src
+touch app.js
+touch app.css
+
+cat > app.css << 'EOF'
+@import "tailwindcss";
+
+/* Scan Django templates */
+@source "../../templates/**/*.html";
+@source "../../../**/templates/**/*.html";
+
+/* DaisyUI with all themes enabled */
+@plugin "daisyui" {
+  themes: all;
+}
+EOF
+
+cat > app.js << 'EOF'
+import './app.css';
+EOF
+
 cd ..
+cd ..
+
+touch vite.config.js
+cat > vite.config.js << 'EOF'
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+import * as path from 'node:path'
+
+export default defineConfig({
+    plugins: [tailwindcss()],
+    base: '/static/',
+    build: {
+        manifest: "manifest.json",
+        outDir: path.resolve('./static/dist'),
+        rollupOptions: {
+            input:  path.resolve('./static/src/app.js'),
+        }
+    }
+});
+EOF
+
+touch package.json
+cat > package.json << 'EOF'
+{
+  "name": "PROJECT_NAME_PLACEHOLDER",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/USERNAME_PLACEHOLDER/PROJECT_NAME_PLACEHOLDER.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/USERNAME_PLACEHOLDER/PROJECT_NAME_PLACEHOLDER/issues"
+  },
+  "homepage": "https://github.com/USERNAME_PLACEHOLDER/PROJECT_NAME_PLACEHOLDER#readme",
+  "description": "",
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "daisyui": "^5.1.29",
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.1.9"
+  }
+}
+EOF
+
+npm install
 
 touch .gitignore
 cat > .gitignore << 'EOF'
@@ -565,5 +650,6 @@ source .venv/bin/activate
 uv run python manage.py makemigrations accounts
 uv run python manage.py migrate
 
-uv run python manage.py runserver
-
+echo "Django project '$PROJECT_NAME' setup complete with uv!"
+echo "Run 'uv run python manage.py runserver' to start the development server."
+echo "Run 'npm run dev' to start the Vite development server."
