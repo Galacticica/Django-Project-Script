@@ -88,5 +88,5 @@ Will this matter beyond the competition? What do you intend to add?
 Keep this short but impactful. It is the last thing they will hear from you. Make sure it recaps your problem and solution without feeling like a rehash of what you've already said.
 
 
-### Additional Suggestion
+## Additional Suggestion
 Based on what the judges have said, if anything, tailor your presentation toward what they want to hear. If they are a business owner, include some more business oriented details such as operating costs. If they're a computer science grad student, maybe spend more time on the technical details.
