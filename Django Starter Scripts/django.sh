@@ -1,7 +1,9 @@
 # Name:         django.sh
 # Author:       Reagan Zierke <reagan.zierke@example.com>
 # Created:      2026-01-21
-# Description:  Setup a Django project using uv
+# Description:  This script sets up a Django project, including user authentication, using uv.
+# It creates a virtual environment, installs necessary packages, configures settings,
+# and sets up an 'accounts' app with custom user model and authentication views.
 
 #!/bin/bash
 # setup_django_uv.sh
@@ -41,6 +43,7 @@ rmdir conf/conf
 
 mkdir templates static media
 
+# Create accounts app
 uv run manage.py startapp accounts
 cd accounts
 mkdir templates
@@ -535,10 +538,12 @@ cat > accounts/templates/accounts/signup.html << 'EOF'
 {% endblock %}
 EOF
 
+# Creates the static/src directory structure
 cd static
 mkdir dist public src
 cd ..
 
+# Create .gitignore
 touch .gitignore
 cat > .gitignore << 'EOF'
 # Python-generated files

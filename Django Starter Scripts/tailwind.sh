@@ -1,11 +1,15 @@
 # Name:         tailwind.sh
 # Author:       Reagan Zierke <reagan.zierke@example.com>
 # Created:      2026-01-21
-# Description:  Setup a Django project using uv, with Tailwind CSS and DaisyUI via Vite.
+# Description:  This script sets up a Django project, including user authentication, using uv.
+# It creates a virtual environment, installs necessary packages, configures settings,
+# and sets up an 'accounts' app with custom user model and authentication views.
+# It also configures Tailwind CSS with DaisyUI using Vite.
 
 #!/bin/bash
 # setup_django_uv.sh
 set -e
+
 # Optional first argument = target directory
 TARGET_DIR="${1:-.}"
 
@@ -42,6 +46,7 @@ rmdir conf/conf
 
 mkdir templates static media
 
+# Create accounts app
 uv run manage.py startapp accounts
 cd accounts
 mkdir templates
@@ -545,6 +550,9 @@ cat > accounts/templates/accounts/signup.html << 'EOF'
 {% endblock %}
 EOF
 
+# --- Tailwind CSS with Vite setup ---
+
+# Creates the static/src directory structure and files
 cd static
 mkdir dist public src
 cd src
@@ -571,6 +579,7 @@ EOF
 cd ..
 cd ..
 
+# Create Tailwind and Vite config files
 touch vite.config.js
 cat > vite.config.js << 'EOF'
 import { defineConfig } from 'vite'
@@ -622,8 +631,10 @@ cat > package.json << 'EOF'
 }
 EOF
 
+# Install Node.js dependencies
 npm install
 
+# Create .gitignore
 touch .gitignore
 cat > .gitignore << 'EOF'
 # Python-generated files
