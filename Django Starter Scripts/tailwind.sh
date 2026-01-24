@@ -420,11 +420,16 @@ from .forms import LoginForm, SignupForm
 User = get_user_model()
 
 class MyLoginView(LoginView):
+    """Custom login view using MyLoginForm."""
     form_class = LoginForm
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
+    
+    def get_success_url(self):
+        return "/"
 
 class MySignupView(FormView):
+    """Custom signup view using SignupForm."""
     form_class = SignupForm
     template_name = "accounts/signup.html"
     success_url = "/" 
@@ -432,7 +437,6 @@ class MySignupView(FormView):
     def form_valid(self, form):
         user = User.objects.create(
             email=form.cleaned_data["email"],
-            username=form.cleaned_data["email"],
             first_name=form.cleaned_data["first_name"],
             last_name=form.cleaned_data["last_name"],
             password=make_password(form.cleaned_data["password"]), 
@@ -444,6 +448,7 @@ class MySignupView(FormView):
         return super().form_invalid(form)
 
 class MyLogoutView(View):
+    """Custom logout view."""
     def get(self, request, *args, **kwargs):
         logout(request)  
         return redirect("/")  
